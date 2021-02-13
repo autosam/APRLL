@@ -1,0 +1,23 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Comment=Removing a list of variables. Seperate them with " , " |Example: Var1,Var2,Var3 (without "[ ]")
+Param=[%1]|Text|Variable(s):
+{End}
+DefineVar "[RemVar.Var_]" "Undefined" "" "Local" ""
+DefineVar "[RemVar.Var_Count]" "Undefined" "" "Local" ""
+DefineVar "[Rv_pos]" "Undefined" "" "Local" ""
+
+Setvar "[x]" "[%1]"
+Call "APRLL\RemoveSpaces(sys)" "[x]"
+Setvar "[%1]" "[x]"
+Setvar "[x]" ""
+
+StrParse "[%1]" "," "[RemVar.Var_]" "[RemVar.Var_Count]"
+
+Loop "1" "[RemVar.Var_count]" "[Rv_pos]"
+     DefineVar "[[RemVar.Var_[Rv_pos]]]" "Undefined" "" "" "[null]"
+     Setvar "[[RemVar.Var_[Rv_pos]]]" "[null]"
+     ClearVariables "[[RemVar.Var_[Rv_pos]]]"
+Endloop
+DeleteArray "[RemVar.Var_]" "All"

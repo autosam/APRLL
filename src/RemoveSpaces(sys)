@@ -1,0 +1,21 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Variable|Source variable:
+{End}
+DefineVar "[rs_found]" "Undefined" "" "Local" ""
+DefineVar "[rs_count]" "Undefined" "" "Local" ""
+
+StrLen "[%1]" "[rs_count]"
+SearchStr " " "[%1]" "[rs_found]" ""
+While "[rs_found]" "<>" "0"
+      StrReplace "[%1]" " " "[null]" "[%1]" ""
+      SearchStr " " "[%1]" "[rs_found]" ""
+Endwhile
+
+StrLen "[%1]" "[rs_count]"
+SearchStr "	" "[%1]" "[rs_found]" ""
+While "[rs_found]" "<>" "0"
+      StrReplace "[%1]" "	" "[null]" "[%1]" ""
+      SearchStr " " "[%1]" "[rs_found]" ""
+Endwhile

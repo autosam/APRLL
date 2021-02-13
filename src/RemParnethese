@@ -1,0 +1,27 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Variable|Source:
+Param=[%2]|Variable|Output:
+{End}
+StrLen "[%1]" "[%X_len]"
+SearchStr "(" "[%1]" "[%Sample]" ""
+If "[%Sample]" "<>" "0"
+   StrDel "[%1]" "[%Sample]" "1" "[%1]"
+Endif
+StrLen "[%1]" "[%X_len]"
+SubStr "[%1]" "[%X_len]" "1" "[%Sample]"
+While "[%Sample]" "=" " "
+      Setvar "[%X_len]" "[%X_len]-1"
+      SubStr "[%1]" "[%X_len]" "1" "[%Sample]"
+Endwhile
+If "[%Sample]" "=" ")"
+   StrDel "[%1]" "[%X_len]" "1" "[%1]"
+else
+    Setvar "[currentlooppos]" "[currentlooppos]+1"
+    Call "APRLL\Coder_Error" "Syntax error.[#13]sysFunc(RemParenthese)[#13][#13]Closing the program."
+Endif
+
+SetVar "[%2]" "[%1]"
+
+Call "APRLL\RemVars" "%Sample,%X_len"

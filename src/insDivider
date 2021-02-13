@@ -1,0 +1,24 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Variable|Input:
+Param=[%2]|Variable|Output Variable:
+{End}
+ClearVariables "[CurrentLine_ins]"
+DefineVar "[%CommandLen]" "Integer" "" "Local" ""
+DefineVar "[%insDivLooppos]" "Integer" "" "Local" ""
+DefineVar "[%temp]" "String" "" "Local" ""
+
+strLen "[%1]" "[%CommandLen]"
+Loop "1" "[%CommandLen]" "[%insDivLooppos]"
+     SubStr "[%1]" "[%insDivLooppos]" "1" "[%temp]"
+     .// [#32] = Space / [#40][#41] = () / [#123][#125] = {}
+     Ifex "[%Temp]=[#32] OR [%Temp]=[#40] OR [%Temp]=[#41] OR [%Temp]=[#123] OR [%Temp]=[#125]"
+          Setvar "[%insDivLooppos]" "[%insDivLooppos]-1"
+          SubStr "[%1]" "1" "[%insDivLooppos]" "[%2]"
+          ExitLoop
+     Endif
+Endloop
+If "[%2]" "=" "[null]"
+     Setvar "[%2]" "[%1]"
+Endif

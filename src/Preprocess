@@ -1,0 +1,86 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Comment=Removes empty lines from a external data file and saves the results in an another external file.
+Param=[%1]|FileName|Source file:
+Param=[%2]|FileName|Output file:
+{End}
+FileCopy "[%1]" "[%2]"
+
+FileToVar "[%2]" "[PPFile]"
+StrReplace "[PPFile]" "{" "[#13][#10]{[#13][#10]" "[PPFile]" ""
+StrReplace "[PPFile]" "}" "[#13][#10]}[#13][#10]" "[PPFile]" ""
+StrReplace "[PPFile]" "[#91]" "[#91]$" "[PPFile]" ""
+FileWrite "[%2]" "All" "[PPFile]"
+ClearVariables "[PPFile]"
+
+.// Setting up {,}
+FileLen "[%2]" "[LineNum]"
+Setvar "[startPos]" "1"
+Loop "1" "[LineNum]" "[Looppos]"
+     FileRead "[%2]" "[Looppos]" "[ParserCurrentLine]"
+     .// Counting {
+     SearchStr "{" "[ParserCurrentLine]" "[OBFound]" ""
+     If "[OBFound]" "<>" "0"
+     Setvar "[OBFound]" "[OBFound]+1"
+     SubStr "[ParserCurrentLine]" "[OBFound]" "1" "[Temp]"
+     Ifex "[Temp]<>1 OR [Temp]<>2 OR [Temp]<>3 OR [Temp]<>4 OR [Temp]<>5 OR [Temp]<>6 OR [Temp]<>7 OR [Temp]<>8 OR [Temp]<>9 OR [Temp]<>10 AND [OBFound]<>0"
+         StrIns "[startpos]" "[ParserCurrentLine]" "[OBFound]" "[ParserCurrentLine]"
+         Setvar "[startpos]" "[startpos]+1"
+     Endif
+     Endif
+     .// Counting }
+     SearchStr "}" "[ParserCurrentLine]" "[OBFound]" ""
+     If "[OBFound]" "<>" "0"
+     Setvar "[OBFound]" "[OBFound]+1"
+     SubStr "[ParserCurrentLine]" "[OBFound]" "1" "[Temp]"
+     Ifex "[Temp]<>1 OR [Temp]<>2 OR [Temp]<>3 OR [Temp]<>4 OR [Temp]<>5 OR [Temp]<>6 OR [Temp]<>7 OR [Temp]<>8 OR [Temp]<>9 OR [Temp]<>10 AND [OBFound]<>0"
+          Setvar "[Startpos]" "[Startpos]-1"
+         StrIns "[Startpos]" "[ParserCurrentLine]" "[OBFound]" "[ParserCurrentLine]"
+     Endif
+     Endif
+     FileWrite "[%2]" "[Looppos]" "[ParserCurrentLine]"
+Endloop
+
+ClearVariables "[LineNum],[startpos],[obfound],[parsercurrentline],[Temp],[looppos],[onelineroutput]"
+
+Filelen "[%2]" "[TempSc_len]"
+Loop "1" "[TempSc_len]" "[TempSc_Pos]"
+     FileRead "[%2]" "[TempSc_pos]" "[LineData]"
+
+     SearchStr " " "[LineData]" "[BeginningSpace]" ""
+     If "[BeginningSpace]" "<>" "0"
+     While "[BeginningSpace]" "=" "1"
+           StrDel "[LineData]" "1" "1" "[LineData]"
+           SearchStr " " "[LineData]" "[BeginningSpace]" ""
+     EndWhile
+     FileWrite "[%2]" "[TempSc_pos]" "[LineData]"
+     Endif
+
+     SearchStr "[#9]" "[LineData]" "[BeginningSpace]" ""
+     If "[BeginningSpace]" "<>" "0"
+     While "[BeginningSpace]" "=" "1"
+           StrDel "[LineData]" "1" "1" "[LineData]"
+           SearchStr "[#9]" "[LineData]" "[BeginningSpace]" ""
+     EndWhile
+     FileWrite "[%2]" "[TempSc_pos]" "[LineData]"
+     Endif
+
+     DefineVar "[DelPos]" "Integer" "" "Local" "0"
+     SearchStr "//" "[LineData]" "[CommentSlash]" ""
+     SearchStr "." "[LineData]" "[CommentDot]" ""
+     Ifex "[LineData]=[null] OR [CommentSlash]=1 OR [CommentDot]=1"
+        Setvar "[Line.[DelPos]]" "[TempSc_pos]"
+        Setvar "[DelPos]" "[DelPos]+1"
+     Endif
+Endloop
+
+GetArrayInfo "[Line.]" "" "" "[Line.Count]"
+Setvar "[LineDelPos]" "[Line.Count]"
+While "[LineDelPos]" ">=" "0"
+      FileDelLine "[%2]" "[Line.[LineDelPos]]"
+      Setvar "[LineDelPos]" "[LineDelPos]-1"
+Endwhile
+
+DeleteArray "[Line.]" "All"
+Call "APRLL\RemVars" "LineData,TempSc,TempSc_len,TempSc_pos,CommentDot,CommentSlash,BeginningSpace,Line.Count,LineDelPos"

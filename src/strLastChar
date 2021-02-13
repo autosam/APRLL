@@ -1,0 +1,12 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Input:
+Param=[%2]|Number|Number of characters to get:
+Param=[%3]|Variable|Output variable:
+{End}
+PopulateStr "[%1]" "[%1]"
+StrLen "[%1]" "[%1_len]"
+Setvar "[%StrCopy]" "[%1_len]-[%2]"
+SubStr "[%1]" "[%StrCopy]" "[%2]" "[%3]"
+ClearVariables "[%1_len],[%StrCopy]"

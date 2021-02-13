@@ -1,0 +1,9 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Output:
+{End}
+StrReplace "[%1]" "\t" "[#9]" "[%1]" ""
+StrReplace "[%1]" "\r" "[#13]" "[%1]" ""
+StrReplace "[%1]" "\n" "[#10]" "[%1]" ""
+SetVar "[log]" "[log][%1]"

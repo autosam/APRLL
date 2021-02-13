@@ -1,0 +1,470 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|FileName|Script location:
+{End}
+If "[nbmode]" "=" "MyNameIsSaman"
+.// Defining key variables as local.
+DefineVar "[IK_local]" "Undefined" "" "Local" "ScLen,CurrentLooppos,CurrentLine,CurrentLine_Len,Flag,Expression,Variable,Value"
+DefineVar "[Local.Var_]" "Undefined" "" "Local" ""
+DefineVar "[Local.Var_Count]" "Undefined" "" "Local" ""
+DefineVar "[dl_pos]" "Undefined" "" "Local" ""
+StrParse "[IK_local]" "," "[Local.Var_]" "[Local.Var_Count]"
+Loop "1" "[Local.Var_count]" "[dl_pos]"
+     DefineVar "[[Local.Var_[dl_pos]]]" "Undefined" "" "Local" ""
+Endloop
+DeleteArray "[Local.Var_]" "All"
+Setvar "[Local.Var_Count]" ""
+Endif
+If "[%1]" "=" "[null]"
+   iF "[scriptloc]" "=" "[null]"
+      SetVar "[%1]" "[pubdir]Data\Script.tmp"
+   Endif
+Endif
+FileExists "[%1]" "[script_exists]"
+If "[Script_exists]" "=" "FALSE"
+   Call "vbAlertBox" "Specified script cannot be found." "[AppTitle]"
+   Exit "" ""
+Endif
+Setvar "[Script_exists]" "[null]"
+Call "APRLL\Preprocess" "[%1]" "[TempDir]Runtime.temp"
+Setvar "[%1]" "[TempDir]Runtime.temp"
+
+FileLen "[%1]" "[ScLen]"
+Loop "1" "[ScLen]" "[CurrentLooppos]"
+FileRead "[%1]" "[CurrentLooppos]" "[CurrentLine]"
+StrLen "[CurrentLine]" "[CurrentLine_Len]"
+
+SearchStr "//" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "End"
+Endif
+SearchStr "." "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "End"
+Endif
+SearchStr "Int" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:Integer"
+Endif
+SearchStr "String" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:String"
+Endif
+SearchStr "Float" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:Float"
+Endif
+SearchStr "Bool" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:Bool"
+Endif
+SearchStr "Var" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:Var"
+Endif
+SearchStr "Char" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:Char"
+Endif
+SearchStr "wChar" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "Setvar:wChar"
+Endif
+SearchStr "mOut" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:Print"
+Endif
+SearchStr "InputBox" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:Inputbox"
+Endif
+SearchStr "AlertBox" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:Alertbox"
+Endif
+SearchStr "DeclareType" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:DeclareType"
+Endif
+SearchStr "Lowercase" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:Lowercase"
+Endif
+SearchStr "Uppercase" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:Uppercase"
+Endif
+SearchStr "{" "[CurrentLine]" "[Flag]" ""
+If "[Flag]" "=" "1"
+   GotoLine "command:OpenBracket"
+Endif
+
+:Setvar:Integer
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+4"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                Call "APRLL\RemoveSpaces" "[Value]"
+                
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Integer[#34] [#34][#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][Value][#34]"
+
+                If "[LastError]" "<>" "[null]"
+                   PopulateStr "[Value]" "[Value]"
+                   Math "[Value]" "0" "[[Variable]]"
+                Endif
+             Endif
+SearchStr "++" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Expression]" "[Expression]-2"
+                StrDel "[currentline]" "1" "[Expression]" "[currentline]"
+                StrReplace "[currentline]" "++" "" "[currentline]"
+                
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Integer[#34] [#34][#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][#91][Currentline][#93]+1[#34]"
+                
+             Endif
+SearchStr "--" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Expression]" "[Expression]-2"
+                StrDel "[currentline]" "1" "[Expression]" "[currentline]"
+                StrReplace "[currentline]" "--" "" "[currentline]"
+
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Integer[#34] [#34][#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][#91][Currentline][#93]-1[#34]"
+                
+             Endif
+Gotoline "End"
+:Setvar:String
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+7"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+                
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]String[#34] [#34][#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][Value][#34]"
+                
+             Endif
+Gotoline "End"
+:Setvar:Float
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+6"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+                
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Decimal[#34] [#34]6[#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][Value][#34]"
+                
+                If "[LastError]" "<>" "[null]"
+                   PopulateStr "[Value]" "[Value]"
+                   Math "[Value]" "0" "[[Variable]]"
+                Endif
+             Endif
+SearchStr "++" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Expression]" "[Expression]-2"
+                StrDel "[currentline]" "1" "[Expression]" "[currentline]"
+                StrReplace "[currentline]" "++" "" "[currentline]"
+
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Decimal[#34] [#34]6[#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Currentline][#93][#34] [#34][#91][Currentline][#93]+1[#34]"
+                
+             Endif
+SearchStr "--" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Expression]" "[Expression]-2"
+                StrDel "[currentline]" "1" "[Expression]" "[currentline]"
+                StrReplace "[currentline]" "--" "" "[currentline]"
+
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Decimal[#34] [#34]6[#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Currentline][#93][#34] [#34][#91][Currentline][#93]-1[#34]"
+
+             Endif
+Gotoline "End"
+:Setvar:Bool
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+5"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                
+                DefineVar "[CheckSpace]" "Undefined" "" "Local" ""
+                SubStr "[Value]" "1" "1" "[CheckSpace]"
+                If "[CheckSpace]" "=" " "
+                   StrDel "[Value]" "1" "1" "[Value]"
+                Endif
+                
+                Ifex "[Value]=0 OR [Value]=1"
+                     FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Boolean[#34] [#34][#34] [#34]Global[#34] [#34][#34]"
+                     FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][Value][#34]"
+                Endif
+             Endif
+Gotoline "End"
+:Setvar:Var
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+4"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]Undefined[#34] [#34][#34] [#34]Global[#34] [#34][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "Setvar [#34][#91][Variable][#93][#34] [#34][Value][#34]"
+
+
+                If "[LastError]" "<>" "[null]"
+                   PopulateStr "[Value]" "[Value]"
+                   Math "[Value]" "0" "[[Variable]]"
+                Endif
+             Endif
+Gotoline "End"
+:Setvar:Char
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+5"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+                
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]String[#34] [#34][#34] [#34]Global[#34] [#34][Value][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "SubStr [#34][#91][Variable][#93][#34] [#34]1[#34] [#34]1[#34] [#34][#91][Variable][#93][#34]"
+                
+                .SubStr "[Value]" "1" "1" "[Value]"
+                .DefineVar "[[Variable]]" "String" "" "local" "[Value]"
+             Endif
+Gotoline "End"
+:Setvar:wchar
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                Setvar "[Flag]" "[Flag]+6"
+                Setvar "[Variable]" "[Expression]-[Flag]"
+                SubStr "[CurrentLine]" "[Flag]" "[Variable]" "[Variable]"
+                Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+                
+                FileWrite "[pubdir]Translate.log" "Append" "DefineVar [#34][#91][Variable][#93][#34] [#34]String[#34] [#34][#34] [#34]Global[#34] [#34][Value][#34]"
+                FileWrite "[pubdir]Translate.log" "Append" "SubStr [#34][#91][Variable][#93][#34] [#34]1[#34] [#34]2[#34] [#34][#91][Variable][#93][#34]"
+                
+             Endif
+Gotoline "End"
+:Command:Print
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   Setvar "[Expression]" "[Expression]-1"
+   StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+   Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+   PopulateStr "[CurrentLine]" "[CurrentLine]"
+   FileWrite "[pubdir]Translate.log" "Append" "Call [#34]APRLL\mOutput[#34] [#34][CurrentLine][#34]"
+Endif
+Gotoline "End"
+:Command:InputBox
+.// Inputbox (Title,Message,OutputVariable)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   Setvar "[Expression]" "[Expression]-1"
+   StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+    strReplace "[CurrentLine]" "','" "'comma'" "[currentline]"
+    StrReplace "[CurrentLine]" "\t" "[#9]" "[CurrentLine]" ""
+    StrReplace "[CurrentLine]" "\r" "[#13]" "[CurrentLine]" ""
+    .strReplace "[CurrentLine]" "(" "[null]" "[currentline]"
+    .strReplace "[CurrentLine]" ")" "[null]" "[currentline]"
+    Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+    StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+    PopulateStr "[Parameter_1]" "[Parameter_1]"
+    PopulateStr "[Parameter_2]" "[Parameter_2]"
+    StrReplace "[parameter_2]" "'comma'" "," "[parameter_2]" ""
+    Call "APRLL\RemoveSpaces" "[parameter_3]"
+    If "[parameter_count]" "=" "3"
+    DefineVar "[[parameter_3]]" "Undefined" "" "local" ""
+        FileWrite "[pubdir]Translate.log" "Append" "Inputbox [#34][parameter_1][#34] [#34][parameter_2][#34] [#34][#91][parameter_3][#93][#34]"
+    Else
+        Debugbreakpoint "Syntax Error: Count=[parameter_count]"
+    Endif
+Endif
+Gotoline "End"
+:Command:AlertBox
+.// Alertbox (Title,Message)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   Setvar "[Expression]" "[Expression]-1"
+   StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+    strReplace "[CurrentLine]" "','" "'comma'" "[currentline]"
+    StrReplace "[CurrentLine]" "\t" "[#9]" "[CurrentLine]" ""
+    StrReplace "[CurrentLine]" "\r" "[#13]" "[CurrentLine]" ""
+    .strReplace "[CurrentLine]" "(" "[null]" "[currentline]"
+    .strReplace "[CurrentLine]" ")" "[null]" "[currentline]"
+    Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+    .PopulateStr "[CurrentLine]" "[CurrentLine]"
+    StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+    StrReplace "[parameter_2]" "'comma'" "," "[parameter_2]" ""
+    If "[parameter_count]" "=" "2"
+       PopulateStr "[parameter_1]" "[parameter_1]"
+       PopulateStr "[parameter_2]" "[parameter_2]"
+       FileWrite "[pubdir]Translate.log" "Append" "Messagebox [#34][parameter_1][#34] [#34][parameter_2][#34] [#34]Ok[#34] [#34][#34]"
+    Else
+        Debugbreakpoint "Syntax Error: Count=[parameter_count]"
+    Endif
+Endif
+Gotoline "End"
+:Command:DeclareType
+.// DeclareType (InputVariable,OutputVariable)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   Setvar "[Expression]" "[Expression]-1"
+   StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+strReplace "[CurrentLine]" "(" "[null]" "[currentline]"
+strReplace "[CurrentLine]" ")" "[null]" "[currentline]"
+Call "APRLL\RemoveSpaces" "[CurrentLine]"
+StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+StrIns "[parameter_1]" "[#91][#93]" "2" "[parameter_1]"
+If "[parameter_count]" "=" "2"
+    .PopulateStr "[parameter_1]" "[parameter_1]"
+DefineVar "[Original]" "Undefined" "" "Local" ""
+populatestr "[parameter_1]" "[original]"
+.debugbreakpoint "[original]=[[parameter_1]]"
+DefineVar "[FloatType]" "Undefined" "" "Local" ""
+.//Testing for string:
+Setvar "[[parameter_1]]" "Hello World!"
+populatestr "[parameter_1]" "[TestParam]"
+If "[TestParam]" "=" "Hello World!"
+   DefineVar "[[Parameter_2]]" "Undefined" "" "Local" "string"
+   StrLen "[original]" "[original_len]"
+   If "[original_len]" "=" "1"
+      Setvar "[[Parameter_2]]" "char"
+   Endif
+   If "[original_len]" "=" "2"
+      Setvar "[[Parameter_2]]" "wchar"
+   Endif
+   Setvar "[Original_len]" "[null]"
+   Setvar "[[parameter_1]]" "[original]"
+   Gotoline "End"
+Endif
+.//Testing for float:
+SearchStr "." "[original]" "[FloatType]" ""
+If "[Floattype]" "<>" "0"
+   DefineVar "[[Parameter_2]]" "Undefined" "" "Local" "float"
+   Setvar "[[parameter_1]]" "[original]"
+   Gotoline "End"
+Endif
+.//Testing for int:
+Setvar "[[parameter_1]]" "5"
+populatestr "[parameter_1]" "[TestParam]"
+If "[TestParam]" "=" "5"
+   DefineVar "[[Parameter_2]]" "Undefined" "" "Local" "integer"
+   Setvar "[[parameter_1]]" "[original]"
+   Gotoline "End"
+Endif
+.//Testing for boolean:
+Setvar "[[parameter_1]]" "0"
+populatestr "[parameter_1]" "[TestParam]"
+If "[TestParam]" "=" "False"
+   Setvar "[[parameter_1]]" "1"
+   populatestr "[parameter_1]" "[TestParam]"
+          If "[TestParam]" "=" "True"
+           DefineVar "[[Parameter_2]]" "Undefined" "" "Local" "boolean"
+           Setvar "[[parameter_1]]" "[original]"
+           Gotoline "End"
+          Endif
+Endif
+Else
+    Debugbreakpoint "Syntax Error"
+Endif
+Endif
+Gotoline "End"
+:Command:Lowercase
+.// Lowercase (Variable)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   Setvar "[Expression]" "[Expression]-1"
+   StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+strReplace "[CurrentLine]" "(" "[null]" "[currentline]"
+strReplace "[CurrentLine]" ")" "[null]" "[currentline]"
+Call "APRLL\RemoveSpaces" "[CurrentLine]"
+StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+Loop "1" "[parameter_count]" "[lw_looppos]"
+     StrLower "[[Parameter_[lw_looppos]]]" "[[Parameter_[lw_looppos]]]"
+Endloop
+Endif
+Gotoline "End"
+:Command:Uppercase
+.// Uppercase (Variable)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   Setvar "[Expression]" "[Expression]-1"
+   StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+strReplace "[CurrentLine]" "(" "[null]" "[currentline]"
+strReplace "[CurrentLine]" ")" "[null]" "[currentline]"
+Call "APRLL\RemoveSpaces" "[CurrentLine]"
+StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+Loop "1" "[parameter_count]" "[lw_looppos]"
+     StrUpper "[[Parameter_[lw_looppos]]]" "[[Parameter_[lw_looppos]]]"
+Endloop
+Endif
+Gotoline "End"
+:Command:IF(Private)
+strReplace "[CurrentLine]" "If" "[null]" "[currentline]"
+strReplace "[CurrentLine]" "(" "[null]" "[currentline]"
+strReplace "[CurrentLine]" ")" "[null]" "[currentline]"
+
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+
+Setvar "[If_Argument]" "1"
+
+Gotoline "End"
+:Command:OpenBracket
+Setvar "[Argument]" "[CurrentLooppos]-1"
+FileRead "[%1]" "[Argument]" "[Argument]"
+.// IF Command:
+SearchStr "IF" "[Argument]" "[If_argument]" ""
+If "[IF_Argument]" "=" "1"
+   strReplace "[Argument]" "If " "[null]" "[Argument]"
+   strReplace "[Argument]" "If" "[null]" "[Argument]"
+   strReplace "[Argument]" "(" "[null]" "[Argument]"
+   strReplace "[Argument]" ")" "[null]" "[Argument]"
+   
+   Setvar "[Operator]" "="
+   Populatestr "[Argument]" "[Pop_Argument]"
+   IfEx "[Pop_Argument]"
+        MessageBox "" "The argument is true" "" ""
+   Else
+        MessageBox "" "The argument is false" "" ""
+   Endif
+
+
+Endif
+Gotoline "End"
+Call "APRLL\RemVars" "parameter_1,parameter_2,parameter_3,parameter_count,testparam"
+
+:End
+EndLoop
+If "[nbmode]" "<>" "D"
+Call "APRLL\RemVars" "parameter_1,parameter_2,parameter_3,parameter_count,testparam"
+Call "APRLL\RemVars" "ScLen,CurrentLooppos,CurrentLine,CurrentLine_Len,Flag,Expression,Variable,Value,lw_looppos"
+Endif
+FileErase "[TempDir]Runtime.temp"

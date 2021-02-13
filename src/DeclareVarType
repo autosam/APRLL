@@ -1,0 +1,22 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Variable|Variable:
+Param=[%2]|Variable|Return in a variable named:
+{End}
+DefineVar "[Original]" "Undefined" "" "Local" "[%1]"
+DefineVar "[FloatType]" "Undefined" "" "Local" ""
+Setvar "[%1]" "Hello World!"
+If "[LastError]" "<>" "[null]"
+   Setvar "[%2]" "[lasterror]"
+   StrReplace "[%2]" "[#34]Hello World![#34] is not a valid " "[null]" "[%2]" ""
+   StrReplace "[%2]" " Value." "[null]" "[%2]" ""
+Endif
+If "[%1]" "=" "Hello World!"
+   Setvar "[%2]" "string"
+Else
+    SearchStr "." "[%1]" "[FloatType]" ""
+              If "[Floattype]" "<>" "0"
+                 Setvar "[%2]" "float"
+              Endif
+Endif

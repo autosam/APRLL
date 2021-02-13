@@ -1,0 +1,46 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Report the result:
+{End}
+.//User made functions
+SearchStr "<" "[Value]" "[%umFunction]" ""
+If "[%umFunction]" "<>" "0"
+   .PopulateStr "[Value]" "[Value]"
+   Setvar "[[%1]]" "1"
+   Setvar "[%umFunction]" "[%umFunction]-1"
+   SubStr "[Value]" "1" "[%umFunction]" "[%umFunctionName]"
+   Call "APRLL\RemoveSpaces" "[%umFunctionName]"
+   SearchStr ">" "[Value]" "[%umFunctionEnd]" ""
+   Setvar "[%umFunction]" "[%umFunction]+2"
+   Setvar "[%umFunctionEnd]" "[%umFunctionEnd]-[%umFunction]"
+   SubStr "[Value]" "[%umFunction]" "[%umFunctionEnd]" "[%umFunctionParam]"
+   Setvar "[%umFunctionString]" "[%umFunctionName]<[%umFunctionParam]>"
+   .//Finding the specified function in the code RES=[%umFunctionRes]
+   Call "APRLL\VarLineSearch" "[%PPFileUMF]" "[%umFunctionName]" "%umFunctionPos"
+   .//Comparing the two
+   If "[%umFunctionPos]" "<>" "0"
+        Call "APRLL\VarLineRead" "[%PPFileUMF]" "[%umFunctionPos]" "%umFunctionTemplateName"
+        .//Removing word "Function" from the line. (9 Characters)
+        StrDel "[%umFunctionTemplateName]" "1" "9" "[%umFunctionTemplateName]"
+        SearchStr "<" "[%umFunctionTemplateName]" "[%umFunctionTemplateParamOpen]"
+        Setvar "[%umFunctionTemplateParamOpen]" "[%umFunctionTemplateParamOpen]-1"
+        SubStr "[%umFunctionTemplateName]" "1" "[%umFunctionTemplateParamOpen]" "[%umFunctionTemplateName]"
+   Endif
+   Call "APRLL\RemoveSpaces(sys)" "[%umFunctionTemplateName]"
+   Ifex "[%umFunctionPos]<>0 AND [%umFunctionTemplateName]=[%umFunctionName]"
+      Setvar "[CurrentLoopposBUM]" "[CurrentLooppos]"
+      Setvar "[CurrentLooppos]" "[%umFunctionPos]-1"
+      .// Passing the parameters to the function properly.
+      StrParse "[%umFunctionParam]" "," "[%umFunctionParam.]" "[%umFunctionParam.Num]"
+   Else
+        Ifex "[CurrentLine_ins]<>String AND [CurrentLine_ins]<>Char AND [CurrentLine_ins]<>wChar AND [CurrentLine_ins]<>Var"
+            debugbreakpoint "Function cant be found"
+            Call "APRLL\Coder_Error_Cont" "Specified function ([%umFunctionName]) cannot be found above your main class."
+        Endif
+        Setvar "[[%1]]" "[null]"
+   Endif
+Else
+    Setvar "[[%1]]" "[null]"
+Endif
+ClearVariables "[%umFunction],[%umFunctionEnd],[%umFunctionParam],[%umFunction],[%umFunctionTemplateParamOpen],[%umFunctionTemplateName]"

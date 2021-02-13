@@ -1,0 +1,25 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Comment=Defining a list of variables as local. Seperate them by " , "
+Param=[%1]|Text|Variable(s):
+Param=[%2]|Text|Variable type (Default: Undefined):
+{End}
+DefineVar "[DefLocal.Var_]" "Undefined" "" "Local" ""
+DefineVar "[DefLocal.Var_Count]" "Undefined" "" "Local" ""
+DefineVar "[dl_pos]" "Undefined" "" "Local" ""
+
+Setvar "[x]" "[%1]"
+Call "APRLL\RemoveSpaces" "[x]"
+Setvar "[%1]" "[x]"
+Setvar "[x]" ""
+
+StrParse "[%1]" "," "[DefLocal.Var_]" "[DefLocal.Var_Count]"
+
+If "[%2]" "=" "[null]"
+   DefineVar "[%2]" "Undefined" "" "Local" "Undefined"
+Endif
+
+Loop "1" "[DefLocal.Var_count]" "[dl_pos]"
+     DefineVar "[DefLocal.Var_[dl_pos]]" "[%2]" "6" "Local" ""
+Endloop

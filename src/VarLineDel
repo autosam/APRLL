@@ -1,0 +1,20 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Variable|Source:
+Param=[%2]|Text|Line to delete: (1,2,3 ..., End)
+{End}
+StrParse "[%1]" "[#13]" "[VarLine_]" "[Num]"
+If "[%2]" "=" "End"
+    Setvar "[VarLine_[Num]]" "[null]"
+Else
+    Setvar "[VarLine_[%2]]" "[null]"
+Endif
+Setvar "[%1]" "[VarLine_1]"
+Loop "2" "[num]" "[Looppos]"
+     If "[VarLine_[Looppos]]" "<>" "[NULL]"
+        SetVar "[%1]" "[%1][#13][VarLine_[Looppos]]"
+     Endif
+Endloop
+DeleteArray "[VarLine_]" "All"
+Call "APRLL\RemVars" "Looppos,Num"

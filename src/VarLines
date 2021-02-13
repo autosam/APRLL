@@ -1,0 +1,7 @@
+{NeoBook Function}
+Version=5.80
+Param=[%1]|Variable|Source:
+Param=[%2]|Variable|Output:
+{End}
+StrParse "[%1]" "[#13]" "[VarLines_]" "[%2]"
+DeleteArray "[VarLines_]" "All"

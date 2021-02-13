@@ -1,0 +1,67 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+{End}
+.// [%funcparam].do([%funcname]) , %funcres
+Gotoline "[%funcname]"
+Call "APRLL\Coder_Error_Cont" "Syntax error.[#13]Function([%funcname]) does not exist."
+.Gotoline "Endexfunc_Failed"
+Gotoline "Endexfunc"
+:ToChar
+SubStr "[%funcparam]" "1" "1" "[%funcres]"
+   Gotoline "Endexfunc"
+:ToWChar
+SubStr "[%funcparam]" "1" "2" "[%funcres]"
+   Gotoline "Endexfunc"
+:Length
+StrLen "[%funcparam]" "[%funcres]"
+   Gotoline "Endexfunc"
+:ToLowercase
+StrLower "[%funcparam]" "[%funcres]"
+   Gotoline "Endexfunc"
+:ToUppercase
+StrUpper "[%funcparam]" "[%funcres]"
+   Gotoline "Endexfunc"
+:Power
+If "[%funcdata]" "=" "2"
+   Setvar "[%funcres]" "[%funcparam]*[%funcparam]"
+Endif
+   Gotoline "Endexfunc"
+:Math
+If "[%funcdata]" "<>" "[null]"
+   Math "[%funcparam][%funcdata]" "-1" "[%funcres]"
+Else
+   Math "[%funcparam]" "-1" "[%funcres]"
+Endif
+   If "[%funcres]" "=" "Error"
+      Call "APRLL\Coder_Error_Cont" "Arguments inside of the math<> function are invalid and/or contain something other than numerals and mathematical symbols/functions."
+      Setvar "[%funcres]" "[null]"
+   Endif
+   Gotoline "Endexfunc"
+:strTrim
+SearchStr " " "[%funcparam]" "[BeginningSpace]" ""
+While "[BeginningSpace]" "=" "1"
+      StrDel "[%funcparam]" "1" "1" "[%funcparam]"
+      SearchStr " " "[%funcparam]" "[BeginningSpace]" ""
+EndWhile
+SearchStr "[#9]" "[%funcparam]" "[BeginningSpace]" ""
+While "[BeginningSpace]" "=" "1"
+         StrDel "[%funcparam]" "1" "1" "[%funcparam]"
+         SearchStr "[#9]" "[%funcparam]" "[BeginningSpace]" ""
+EndWhile
+Setvar "[%funcres]" "[%funcparam]"
+ClearVariables "[BeginningSpace]"
+   Gotoline "Endexfunc"
+:DivisBy2
+strLen "[%funcparam]" "[%funcres]"
+SubStr "[%funcparam]" "[%funcres]" "1" "[%funcres]"
+Ifex "[%funcres]=1 OR [%funcres]=3 OR [%funcres]=5 OR [%funcres]=7 OR [%funcres]=9"
+   Setvar "[%funcres]" "1"
+Else
+   Setvar "[%funcres]" "0"
+Endif
+   Gotoline "Endexfunc"
+   
+:Endexfunc
+StrReplace "[CurrentLine]" "[%funcstring]" "[%funcres]" "[CurrentLine]" ""
+.:Endexfunc_Failed

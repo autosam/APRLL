@@ -1,0 +1,27 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|FileName|File:
+{End}
+.alertbox "" "[%1],[%2]"
+FileLen "[%1]" "[%Len]"
+Loop "1" "[%Len]" "[%RS_looppos]"
+FileRead "[%1]" "[%RS_Looppos]" "[%RS_LineData]"
+
+SearchStr "[#91]%" "[%RS_LineData]" "[%3]" ""
+While "[%3]" "<>" "0"
+      StrReplace "[%RS_LineData]" "[#91]%" "[#91]" "[%RS_LineData]" ""
+      SearchStr "[#91]%" "[%RS_LineData]" "[%3]" ""
+Endwhile
+
+SearchStr "%[#93]" "[%RS_LineData]" "[%3]" ""
+While "[%3]" "<>" "0"
+      StrReplace "[%RS_LineData]" "%[#93]" "[#93]" "[%RS_LineData]" ""
+      SearchStr "%[#93]" "[%RS_LineData]" "[%3]" ""
+Endwhile
+
+FileWrite "[%1]" "[%RS_Looppos]" "[%RS_LineData]"
+Endloop
+
+ClearVariables "[%RS_LineData],[%RS_Looppos],[%3],[%Len]"
+.alertbox "" "[%1],[%2]"

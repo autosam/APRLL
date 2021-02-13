@@ -1,0 +1,10 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Message:
+{End}
+If "[APRLL]" "=" "Coder"
+   SetObjectCaption "Text8" "[%1]"
+   SystemSound "SystemStop"
+   CustomWindow "Error" "-1" "-1" "ErrorMsgContinue" "NoBorder+Exclusive+NoCloseBtn"
+Endif

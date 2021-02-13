@@ -1,0 +1,736 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|FileName|Script location:
+{End}
+If "[APRLL]" "=" "Coder"
+   TimerStart "BuildTime" "1"
+   CustomWindow "Preparing..." "-1" "-1" "Preparing" "DialogBox+NoCloseBtn"
+Endif
+.// Initializing the building process.
+If "[%1]" "=" "[null]"
+   If "[scriptloc]" "=" "[null]"
+      SetVar "[%1]" "[pubdir]Data\Script.tmp"
+   Endif
+Endif
+FileExists "[%1]" "[script_exists]"
+If "[Script_exists]" "=" "FALSE"
+   Call "vbAlertBox" "Specified script cannot be found." "[AppTitle]"
+Endif
+ClearVariables "[Script_exists]"
+.// Preprocessing the script.
+Call "APRLL\Preprocess" "[%1]" "[TempDir]Runtime.temp"
+.Call "APRLL\ReservedChar(file)" "[TempDir]Runtime.temp"
+Setvar "[%1]" "[TempDir]Runtime.temp"
+If "[%Runtime]" "=" "True"
+      FileCopy "[TempDir]Runtime.temp" "C:\Users\[Username]\Desktop\runtime.txt"
+      FileExists "C:\Users\[Username]\Desktop\runtime.txt" "[%RuntimeCheck]"
+      If "[%RuntimeCheck]" "=" "false"
+         FileCopy "[TempDir]Runtime.temp" "[pubdir]runtime.txt"
+      EndIf
+      ClearVariables "[%RuntimeCheck]"
+Endif
+FileToVar "[%1]" "[%PPFile]"
+Call "APRLL\VarLineSearch" "[%PPFile]" "main" "%mainPos"
+If "[%mainPos]" "=" "[null]"
+   Setvar "[%mainPos]" "1"
+EndIf
+Call "APRLL\VarLineDelExBelow" "[%PPFile]" "[%mainpos]" "%PPFileUMF"
+.// End of the building process.
+If "[APRLL]" "=" "Coder"
+   TimerStop "BuildTime"
+   CloseCustomWindow "Preparing"
+Endif
+.// Starting the interpreting process.
+FileLen "[%1]" "[ScLen]"
+Loop "[%mainPos]" "[ScLen]" "[CurrentLooppos]"
+FileRead "[%1]" "[CurrentLooppos]" "[CurrentLine]"
+.// Checking for { and } to skip.
+SubStr "[CurrentLine]" "1" "1" "[CurrentLine_Symbol]"
+Ifex "[CurrentLine_Symbol]=[#123] OR [CurrentLine_Symbol]=[#125] OR [Currentline]=Main"
+   ClearVariables "[CurrentLine_Symbol]"
+   Gotoline "End"
+Endif
+ClearVariables "[CurrentLine_Symbol]"
+.DebugBreakPoint "Current Line: //[Currentline]//"
+Call "APRLL\InsDivider" "[CurrentLine]" "[CurrentLine_ins]"
+StrLen "[currentline_ins]" "[currentline_ins_len]"
+StrLen "[CurrentLine]" "[CurrentLine_Len]"
+.// Checking for predefined instructions. insCheck will change the [Flag] value.
+Call "APRLL\insCheck"
+If "[Flag]" "=" "0"
+   Gotoline "End"
+Endif
+.// Applying functions.
+SearchStr ".do" "[CurrentLine]" "[%funcFound]" ""
+If "[%funcFound]" "=" "0"
+   Gotoline "Nofunc"
+Endif
+:Startfunc
+If "[%funcFound]" ">" "2"
+   StrParse "[CurrentLine]" ".do" "[%part_]" "[%parts]"
+   If "[%parts]" ">=" "1"
+      StrLen "[%part_1]" "[%part_1_len]"
+      Setvar "[%i]" "[%part_1_len]"
+      While "[%i]" ">" "0"
+            SubStr "[%part_1]" "[%i]" "1" "[%temp]"
+            .// [#32] = Space / [#40][#41] = () / [#44] = , / [#46] = . / [#47] = '/' / [#60][#62] = <>
+            Ifex "[%temp]=[#32] OR [%temp]=[#61] OR [%temp]=[#60] OR [%temp]=[#62] OR [%temp]=[#40] OR [%temp]=[#41] OR [%temp]=[#44] OR [%temp]=[#46] OR [%temp]=[#47] OR [%temp]=[#60] OR [%temp]=[#62]"
+               Setvar "[%part_1_len]" "[%part_1_len]-[%passedi]"
+               Setvar "[%i]" "[%i]+1"
+               .SubStr "[%part_1]" "[%i]" "[%part_1_len]" "[%funcparam]"
+               SubStr "[%part_1]" "[%i]" "[%passedi]" "[%funcparam]"
+               ExitWhile
+            Endif
+      Setvar "[%i]" "[%i]-1"
+      Setvar "[%passedi]" "[%passedi]+1"
+      EndWhile
+   Endif
+   strLen "[%part_2]" "[%part_2_len]"
+   .// Removing characters after the symbol ')'
+   SearchStr ")" "[%part_2]" "[%part_2_del]" ""
+   .Setvar "[%part_2_del]" "[%part_2_del]+1"
+   StrDel "[%part_2]" "[%part_2_del]+1" "[%part_2_len]" "[%part_2]"
+   .// Checking the last character for ')'
+   Call "APRLL\strLastChar" "[%part_2]" "1" "[%parenthesetest]"
+   If "[%parenthesetest]" "=" ")"
+      Setvar "[%part_2_len]" "[%part_2_len]-1"
+      StrDel "[%part_2]" "[%part_2_len]" "1" "[%part_2]"
+   Endif
+   .Debugbreakpoint "Before remove parenthese :: [%part_2]"
+   Call "APRLL\RemParnethese" "[%part_2]" "[%funcname]"
+   Setvar "[%funcstring]" "[%funcparam].do([%part_2])"
+   PopulateStr "[%funcparam]" "[%funcparam]"
+   SearchStr "<" "[%funcname]" "[%funcdatafound]" ""
+   if "[%funcdatafound]" ">" "1"
+      .setvar "[%funcdatafound]" "[%funcdatafound]+1"
+      SubStr "[%funcname]" "[%funcdatafound]+1" "64" "[%funcdata]"
+      Clearvariables "[%funcdatafound]"
+      StrReplace "[%funcdata]" ">" "[null]" "[%funcdata]" ""
+      StrReplace "[%funcname]" "<[%funcdata]>" "[null]" "[%funcname]" "CaseSensitive"
+      PopulateStr "[%funcdata]" "[%funcdata]"
+   endif
+   Call "APRLL\exFunc"
+   Setvar "[%parts]" "[%parts]-1"
+   StrLen "[CurrentLine]" "[CurrentLine_Len]"
+.   Debugbreakpoint "Currentline: **[CurrentLine]**"
+Endif
+:Endfunc
+DeleteArray "[%part_]" "All"
+ClearVariables "[%funcfound],[%parts],[%part_1_len],[%part_2_len],[%i],[%passedi],[%temp],[%funcparam],[%funcname],[%funcstring],[%funcres],[%parenthesetest],[%part_2_del],[%funcdata],[%funcdatafound]"
+SearchStr ".do" "[CurrentLine]" "[%funcFound]" ""
+If "[%funcFound]" ">" "2"
+   GotoLine "Startfunc"
+Endif
+:Nofunc
+ClearVariables "[%funcFound]"
+.// Direct accessing the instructions.
+Ifex "[Flag]=1 AND [Currentline_Ins]<>[null]"
+     Gotoline "Command:[Currentline_Ins]"
+Endif
+.// Setting up special instructions
+.// User made function
+.Setvar "[Value]" "[CurrentLine]"
+.Call "APRLL\ConfigUMfunc" "%umfuncreport"                
+.If "[%umfuncreport]" "=" "1"
+   .ClearVariables "[%funcreport]"
+   .Gotoline "End"
+.Endif
+
+.Debugbreakpoint "No declared instruction is found :: [Currentline_Ins]"
+.// When no instruction is found, it skips the whole code and straight goes to the end line.
+Gotoline "End"
+
+:Command:Int
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+4" "[Expression]-([Flag]+4)" "[Variable]"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                Call "APRLL\ConfigUMfunc" "%umfuncreport"
+                If "[%umfuncreport]" "=" "1"
+                   ClearVariables "[%funcreport]"
+                   Gotoline "End"
+                Endif
+
+                DefineVar "[$[Variable]]" "Integer" "" "local" ""
+                Setvar "[$[Variable]]" "[Value]"
+
+                If "[LastError]" "<>" "[null]"
+                   PopulateStr "[Value]" "[Value]"
+                   Math "[Value]" "0" "[$[Variable]]"
+                Endif
+             Endif
+If "[expression]" "=" "0"
+   SearchStr "++" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                StrDel "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[CurrentLine]"
+                StrDel "[CurrentLine]" "1" "4" "[CurrentLine]"
+                DefineVar "[$[Currentline]]" "Integer" "" "local" ""
+                Setvar "[$[Currentline]]" "[$[Currentline]]+1"
+             Endif
+Endif
+If "[expression]" "=" "0"
+   SearchStr "--" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                StrDel "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[CurrentLine]"
+                StrDel "[CurrentLine]" "1" "4" "[CurrentLine]"
+                DefineVar "[$[Currentline]]" "Integer" "" "local" ""
+                Setvar "[$[Currentline]]" "[$[Currentline]]-1"
+             Endif
+Endif
+.// Defining int variable.
+If "[Expression]" "=" "0"
+   StrDel "[CurrentLine]" "1" "4" "[Variable]"
+   Call "APRLL\RemoveSpaces" "[Variable]"
+   DefineVar "[$[Variable]]" "Integer" "" "local" ""
+Endif
+Gotoline "End"
+:Command:String
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+7" "[Expression]-([Flag]+7)" "[Variable]"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                
+                Call "APRLL\ConfigUMfunc" "%umfuncreport"
+                If "[%umfuncreport]" "=" "1"
+                   ClearVariables "[%funcreport]"
+                   Gotoline "End"
+                Endif
+                
+                PopulateStr "[Value]" "[Value]"
+                DefineVar "[$[Variable]]" "String" "" "local" ""
+                Setvar "[$[Variable]]" "[Value]"
+             Endif
+.// Defining string variable.
+If "[Expression]" "=" "0"
+   StrDel "[CurrentLine]" "1" "7" "[Variable]"
+   Call "APRLL\RemoveSpaces" "[Variable]"
+   DefineVar "[$[Variable]]" "String" "" "local" ""
+Endif
+
+Gotoline "End"
+:Command:Float
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+6" "[Expression]-([Flag]+6)" "[Variable]"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                
+                Call "APRLL\ConfigUMfunc" "%umfuncreport"
+                If "[%umfuncreport]" "=" "1"
+                   ClearVariables "[%funcreport]"
+                   Gotoline "End"
+                Endif
+
+                PopulateStr "[Value]" "[Value]"
+                DefineVar "[$[Variable]]" "Decimal" "6" "local" ""
+                Setvar "[$[Variable]]" "[Value]"
+                If "[LastError]" "<>" "[null]"
+                   PopulateStr "[Value]" "[Value]"
+                   Math "[Value]" "6" "[$[Variable]]"
+                Endif
+             Endif
+If "[expression]" "=" "0"
+   SearchStr "++" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                StrDel "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[CurrentLine]"
+                StrDel "[CurrentLine]" "1" "6" "[CurrentLine]"
+                DefineVar "[$[Currentline]]" "Decimal" "6" "local" ""
+                Setvar "[$[Currentline]]" "[$[Currentline]]+1"
+             Endif
+Endif
+If "[expression]" "=" "0"
+   SearchStr "--" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                StrDel "[CurrentLine]" "[Expression]" "[CurrentLine_Len]" "[CurrentLine]"
+                StrDel "[CurrentLine]" "1" "6" "[CurrentLine]"
+                DefineVar "[$[Currentline]]" "Decimal" "6" "local" ""
+                Setvar "[$[Currentline]]" "[$[Currentline]]-1"
+             Endif
+Endif
+.// Defining float variable.
+If "[Expression]" "=" "0"
+   StrDel "[CurrentLine]" "1" "6" "[Variable]"
+   Call "APRLL\RemoveSpaces" "[Variable]"
+   DefineVar "[$[Variable]]" "Decimal" "6" "local" ""
+Endif
+
+Gotoline "End"
+:Command:Bool
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+5" "[Expression]-([Flag]+5)" "[Variable]"
+                .Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+
+                Call "APRLL\ConfigUMfunc" "%umfuncreport"
+                If "[%umfuncreport]" "=" "1"
+                   ClearVariables "[%funcreport]"
+                   Gotoline "End"
+                Endif
+
+                DefineVar "[CheckSpace]" "Undefined" "" "Local" ""
+                SubStr "[Value]" "1" "1" "[CheckSpace]"
+                If "[CheckSpace]" "=" " "
+                   StrDel "[Value]" "1" "1" "[Value]"
+                Endif
+
+                Ifex "[Value]=0 OR [Value]=1"
+                     DefineVar "[$[Variable]]" "Boolean" "" "local" ""
+                     Setvar "[$[Variable]]" "[Value]"
+                Endif
+             Endif
+.// Defining boolean variable.
+If "[Expression]" "=" "0"
+   StrDel "[CurrentLine]" "1" "5" "[Variable]"
+   Call "APRLL\RemoveSpaces" "[Variable]"
+   DefineVar "[$[Variable]]" "Boolean" "" "local" ""
+Endif
+
+Gotoline "End"
+:Command:Var
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+4" "[Expression]-([Flag]+4)" "[Variable]"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+
+                Call "APRLL\ConfigUMfunc" "%umfuncreport"
+                If "[%umfuncreport]" "=" "1"
+                   ClearVariables "[%funcreport]"
+                   Gotoline "End"
+                Endif
+                PopulateStr "[Value]" "[Value]"
+                Setvar "[$[Variable]]" "[Value]"
+
+                If "[LastError]" "<>" "[null]"
+                   PopulateStr "[Value]" "[Value]"
+                   Math "[Value]" "0" "[$[Variable]]"
+                Endif
+             Endif
+.// Defining undefined variable.
+If "[Expression]" "=" "0"
+   StrDel "[CurrentLine]" "1" "4" "[Variable]"
+   Call "APRLL\RemoveSpaces" "[Variable]"
+   DefineVar "[$[Variable]]" "Undefined" "" "Local" ""
+Endif
+
+Gotoline "End"
+:Command:Char
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+5" "[Expression]-([Flag]+5)" "[Variable]"
+                .Setvar "[Expression]" "[Expression]+1"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+                SubStr "[Value]" "1" "1" "[Value]"
+                DefineVar "[$[Variable]]" "String" "" "local" "[Value]"
+             Endif
+Gotoline "End"
+:Command:wchar
+SearchStr "=" "[CurrentLine]" "[Expression]" ""
+             If "[Expression]" "<>" "0"
+                SubStr "[CurrentLine]" "[Flag]+6" "[Expression]-([Flag]+6)" "[Variable]"
+                SubStr "[CurrentLine]" "[Expression]+1" "[CurrentLine_Len]" "[Value]"
+                Call "APRLL\RemoveSpaces" "[Variable]"
+                PopulateStr "[Value]" "[Value]"
+                SubStr "[Value]" "1" "2" "[Value]"
+                DefineVar "[$[Variable]]" "String" "" "local" "[Value]"
+             Endif
+Gotoline "End"
+:Command:mOut
+.// mOut (Data[])
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+   Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+   PopulateStr "[CurrentLine]" "[CurrentLine]"
+   Call "APRLL\mOutput" "[CurrentLine]"
+Endif
+Gotoline "End"
+:Command:mCls
+.// mCls
+ClearVariables "[log]"
+:Command:InputBox
+.// Inputbox (Title[],Message[],OutputVariable)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+    strReplace "[CurrentLine]" "','" "'comma'" "[currentline]"
+    StrReplace "[CurrentLine]" "\t" "[#9]" "[CurrentLine]" ""
+    StrReplace "[CurrentLine]" "\r" "[#13]" "[CurrentLine]" ""
+    Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+    StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+    PopulateStr "[Parameter_1]" "[Parameter_1]"
+    PopulateStr "[Parameter_2]" "[Parameter_2]"
+    StrReplace "[parameter_1]" "'comma'" "," "[parameter_1]" ""
+    StrReplace "[parameter_2]" "'comma'" "," "[parameter_2]" ""
+    .Call "APRLL\ReservedChar(line)" "[parameter_1]" "[parameter_1]"
+    .Call "APRLL\ReservedChar(line)" "[parameter_2]" "[parameter_2]"
+    Call "APRLL\RemoveSpaces" "[parameter_3]"
+    StrReplace "[Parameter_3]" "%" "[null]" "[Parameter_3]" ""
+    If "[parameter_count]" "=" "3"
+      DefineVar "[$[parameter_3]]" "Undefined" "" "local" ""
+      InputBox "[parameter_1]" "[parameter_2]" "[$[parameter_3]]"
+    Else
+      Call "APRLL\Coder_Error_Cont" "[Currentline_ins] requires 3 parameters."
+      Debugbreakpoint "Syntax Error: Count=[parameter_count]"
+    Endif
+Endif
+Gotoline "End"
+:Command:AlertBox
+.// Alertbox (Title[],Message[])
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+    strReplace "[CurrentLine]" "','" "'comma'" "[currentline]"
+    StrReplace "[CurrentLine]" "\t" "[#9]" "[CurrentLine]" ""
+    StrReplace "[CurrentLine]" "\r" "[#13]" "[CurrentLine]" ""
+    StrReplace "[CurrentLine]" "%" "[null]" "[CurrentLine]" ""
+    Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+    StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+    StrReplace "[parameter_1]" "'comma'" "," "[parameter_1]" ""
+    StrReplace "[parameter_2]" "'comma'" "," "[parameter_2]" ""
+    .Call "APRLL\ReservedChar(line)" "[parameter_1]" "[parameter_1]"
+    .Call "APRLL\ReservedChar(line)" "[parameter_2]" "[parameter_2]"
+    If "[parameter_count]" "=" "2"
+       PopulateStr "[parameter_1]" "[parameter_1]"
+       PopulateStr "[parameter_2]" "[parameter_2]"
+       MessageBox "[parameter_1]" "[parameter_2]" "OK" ""
+    Else
+        Call "APRLL\Coder_Error_Cont" "[Currentline_ins] requires 2 parameters."
+        Debugbreakpoint "Syntax Error: Count=[parameter_count]"
+    Endif
+Endif
+Gotoline "End"
+:Command:DeclareType
+.// DeclareType (InputVariable,OutputVariable)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+Call "APRLL\RemoveSpaces" "[CurrentLine]"
+StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+StrIns "[parameter_1]" "[#91]$[#93]" "3" "[parameter_1]"
+If "[parameter_count]" "=" "2"
+DefineVar "[Original]" "Undefined" "" "Local" ""
+populatestr "[parameter_1]" "[original]"
+DefineVar "[FloatType]" "Undefined" "" "Local" ""
+.// Testing for string:
+Setvar "[[parameter_1]]" "Hello World!"
+populatestr "[parameter_1]" "[TestParam]"
+If "[TestParam]" "=" "Hello World!"
+   DefineVar "[$[Parameter_2]]" "string" "" "Local" "string"
+   StrLen "[original]" "[original_len]"
+   If "[original_len]" "=" "1"
+      Setvar "[$[Parameter_2]]" "char"
+   Endif
+   If "[original_len]" "=" "2"
+      Setvar "[$[Parameter_2]]" "wchar"
+   Endif
+   Setvar "[Original_len]" "[null]"
+   Setvar "[[parameter_1]]" "[original]"
+   Gotoline "End"
+Endif
+.// Testing for float:
+SearchStr "." "[original]" "[FloatType]" ""
+If "[Floattype]" "<>" "0"
+   DefineVar "[$[Parameter_2]]" "string" "" "Local" "float"
+   Setvar "[[parameter_1]]" "[original]"
+   Gotoline "End"
+Endif
+.// Testing for int:
+Setvar "[[parameter_1]]" "5"
+populatestr "[parameter_1]" "[TestParam]"
+If "[TestParam]" "=" "5"
+   DefineVar "[$[Parameter_2]]" "string" "" "Local" "integer"
+   Setvar "[[parameter_1]]" "[original]"
+   Gotoline "End"
+Endif
+.// Testing for boolean:
+Setvar "[[parameter_1]]" "0"
+populatestr "[parameter_1]" "[TestParam]"
+If "[TestParam]" "=" "False"
+   Setvar "[[parameter_1]]" "1"
+   populatestr "[parameter_1]" "[TestParam]"
+          If "[TestParam]" "=" "True"
+           DefineVar "[$[Parameter_2]]" "string" "" "Local" "boolean"
+           Setvar "[[parameter_1]]" "[original]"
+           Gotoline "End"
+          Endif
+Endif
+Else
+    Debugbreakpoint "Syntax Error"
+Endif
+Endif
+Gotoline "End"
+:Command:Lowercase
+.// Lowercase (Variable,...)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+Call "APRLL\RemoveSpaces" "[CurrentLine]"
+.StrReplace "[CurrentLine]" "%" "[null]" "[CurrentLine]" ""
+StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+Loop "1" "[parameter_count]" "[lw_looppos]"
+     StrLower "[$[Parameter_[lw_looppos]]]" "[$[Parameter_[lw_looppos]]]"
+Endloop
+Endif
+Gotoline "End"
+:Command:Uppercase
+.// Uppercase (Variable,...)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+Call "APRLL\RemoveSpaces" "[CurrentLine]"
+.StrReplace "[CurrentLine]" "%" "[null]" "[CurrentLine]" ""
+StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+Loop "1" "[parameter_count]" "[lw_looppos]"
+     StrUpper "[$[Parameter_[lw_looppos]]]" "[$[Parameter_[lw_looppos]]]"
+Endloop
+Endif
+Gotoline "End"
+:Command:Random
+.// Random (FirstNum[],SecondNum[],OutputVar)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+   Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+   Call "APRLL\RemoveSpaces" "[CurrentLine]"
+   PopulateStr "[currentline]" "[currentline]"
+   StrParse "[CurrentLine]" "," "[parameter_]" "[parameter_count]"
+   .StrReplace "[Parameter_3]" "%" "[null]" "[Parameter_3]" ""
+   Call "Random" "[parameter_1]" "[parameter_2]" "[parameter_ran]"
+   DefineVar "[$[parameter_3]]" "Integer" "" "Local" "[parameter_ran]"
+   .Setvar "[$[parameter_3]]" "[parameter_ran]"
+   ClearVariables "[parameter_ran]"
+Endif
+Gotoline "End"
+:Command:Debug
+.// Debug(Data[])
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+   Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+   PopulateStr "[currentline]" "[currentline]"
+   Ifex "[nbmode]=D"
+        Debugbreakpoint "[currentline]"
+   Endif
+   Ifex "[nbmode]<>D AND [APRLL]=Coder"
+        SetObjectCaption "DebugText" "[Currentline]"
+        CustomWindow "Breakpoint" "-1" "-1" "BreakpointCont" "DialogBox+Exclusive"
+   Endif
+Endif
+Gotoline "End"
+.// Jump Num
+:Command:Jump
+StrDel "[CurrentLine]" "1" "[CurrentLine_Ins_Len]" "[CurrentLine]"
+Call "APRLL\RemoveSpaces(sys)" "[CurrentLine]"
+Setvar "[CurrentLooppos]" "[CurrentLine]-1"
+Gotoline "End"
+:Command:Sleep
+.// Sleep (TimeMs)
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+   StrDel "[Currentline]" "1" "[Expression]-1" "[Currentline]"
+   Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+   PopulateStr "[currentline]" "[currentline]"
+   Delay "[currentline]-100"
+EndIf
+GotoLine "End"
+:Command:If
+.// If (Argument1[]<Operator[==,<>,<,>,<=,>=]>Argument2[])
+SearchStr "(" "[Currentline]" "[Expression]" ""
+If "[Expression]" "<>" "0"
+    Setvar "[Expression]" "[Expression]-1"
+    StrDel "[Currentline]" "1" "[Expression]" "[Currentline]"
+    Call "APRLL\RemParnethese" "[CurrentLine]" "[CurrentLine]"
+    PopulateStr "[Currentline]" "[Currentline]"
+
+    SearchStr "==" "[currentline]" "[Expression]" ""
+    If "[Expression]" "<>" "0"
+        Gotoline "IFis=="
+    Endif
+    SearchStr "<>" "[currentline]" "[Expression]" ""
+    If "[Expression]" "<>" "0"
+        Gotoline "IFis<>"
+    Endif
+    SearchStr ">=" "[currentline]" "[Expression]" ""
+    If "[Expression]" "<>" "0"
+        Gotoline "IFis>="
+    Endif
+    SearchStr "<=" "[currentline]" "[Expression]" ""
+    If "[Expression]" "<>" "0"
+        Gotoline "IFis<="
+    Endif
+    SearchStr "<" "[currentline]" "[Expression]" ""
+    If "[Expression]" "<>" "0"
+        Gotoline "IFis<"
+    Endif
+    SearchStr ">" "[currentline]" "[Expression]" ""
+    If "[Expression]" "<>" "0"
+        Gotoline "IFis>"
+    Endif
+    Gotoline "IFisNA"
+
+    .//Searching for '=='
+    :IFis==
+    StrParse "[Currentline]" "==" "[%Arg_]" ""
+    If "[%Arg_1]" "=" "[%Arg_2]"
+      Setvar "[CurrentLooppos]" "[Currentlooppos]+1"
+      Gotoline "EndIfCode"
+    Else
+      Gotoline "SkipIfCode"
+    Endif
+    .//Searching for '<>'
+    :IFis<>
+    StrParse "[Currentline]" "<>" "[%Arg_]" ""
+    If "[%Arg_1]" "<>" "[%Arg_2]"
+      Setvar "[CurrentLooppos]" "[Currentlooppos]+1"
+		Gotoline "EndIfCode"
+    Else
+      Gotoline "SkipIfCode"
+	Endif
+    .//Searching for '<'
+    :IFis<
+	StrParse "[Currentline]" "<" "[%Arg_]" ""
+	If "[%Arg_1]" "<" "[%Arg_2]"
+      Setvar "[CurrentLooppos]" "[Currentlooppos]+1"
+		Gotoline "EndIfCode"
+	Else
+      Gotoline "SkipIfCode"
+	Endif
+	.//Searching for '>'
+    :IFis>
+    StrParse "[Currentline]" ">" "[%Arg_]" ""
+	If "[%Arg_1]" ">" "[%Arg_2]"
+      Setvar "[CurrentLooppos]" "[Currentlooppos]+1"
+		Gotoline "EndIfCode"
+	Else
+    	Gotoline "SkipIfCode"
+	Endif
+	.//Searching for '>='
+	:IFis>=
+	StrParse "[Currentline]" ">=" "[%Arg_]" ""
+	If "[%Arg_1]" ">=" "[%Arg_2]"
+      Setvar "[CurrentLooppos]" "[Currentlooppos]+1"
+    	Gotoline "EndIfCode"
+	Else
+    	Gotoline "SkipIfCode"
+	Endif
+	.//Searching for '<='
+	:IFis<=
+	StrParse "[Currentline]" "<=" "[%Arg_]" ""
+	If "[%Arg_1]" "<=" "[%Arg_2]"
+      Setvar "[CurrentLooppos]" "[Currentlooppos]+1"
+    	Gotoline "EndIfCode"
+	Else
+    	Gotoline "SkipIfCode"
+	Endif
+	.//If no proper operator is found.
+	:IFisNA
+	If "[Expression]" "=" "0"
+         Call "APRLL\Coder_Error_Cont" "No proper operator is found in [Currentline_Ins] command.[#13]Program will be terminated."
+         Setvar "[CurrentLooppos]" "[ScLen]"
+         Gotoline "EndIfCode"
+    Endif
+      Gotoline "EndIfCode"
+      .//Skipping process
+      :SkipIfCode
+      Setvar "[%IFCBPos]" "[Currentlooppos]+1"
+      Call "APRLL\VarLineRead" "[%PPFile]" "[%IFCBPos]" "%CBData"
+      SubStr "[%CBData]" "3" "1" "[%CBNum]"
+      Call "APRLL\VarLineDelExAbove" "[%PPFile]" "[CurrentLooppos]" "%PPFileModif"
+      Call "APRLL\VarLineSearch" "[%PPFileModif]" "}[%CBNum]" "%SkipLineNum"
+      Setvar "[CurrentLooppos]" "[%SkipLineNum]+[CurrentLooppos]-1"
+      Setvar "[%PPFileModif]" ""
+      .// End of "If" command.
+      .debugbreakpoint "skippingif"
+      :EndIfCode
+      DeleteArray "[%Arg_]" "All"
+      ClearVariables "[%IFCBPos],[%CBData],[%CBNum],[%SkipLineNum],[%PPFileModif]"
+Endif
+Gotoline "End"
+.// Function Name<Parameter1,parameter2>
+:Command:Function
+Setvar "[%UMFCBPos]" "[%umFunctionPos]+1"
+Call "APRLL\VarlineRead" "[%PPFileUMF]" "[%UMFCBPos]" "%UMFCBData"
+SubStr "[%UMFCBData]" "3" "1" "[%UMFCBNum]"
+Call "APRLL\VarLineDelExAbove" "[%PPFileUMF]" "[CurrentLooppos]" "%PPFileModif"
+Call "APRLL\VarLineSearch" "[%PPFileModif]" "}[%UMFCBNum]" "UMFSkipLineNum"
+
+StrDel "[CurrentLine]" "1" "[CurrentLine_Ins_Len]" "[CurrentLine]"
+StrLen "[%umFunctionName]" "[%umFunctionNameLen]"
+Setvar "[%umFunctionNameLen]" "[%umFunctionNameLen]+1"
+StrDel "[CurrentLine]" "1" "[%umFunctionNameLen]" "[CurrentLine]"
+StrDel "[CurrentLine]" "1" "1" "[CurrentLine]"
+StrLen "[CurrentLine]" "[CurrentLine_len]"
+StrDel "[CurrentLine]" "[CurrentLine_len]" "1" "[CurrentLine]"
+StrParse "[CurrentLine]" "," "[%umFunctionTemplate.]" "[%umFunctionTemplate.Num]"
+If "[%umFunctionTemplate.Num]" "=" "[%umFunctionParam.Num]"
+    Loop "1" "[%umFunctionTemplate.Num]" "[%umLooppos]"
+         PopulateStr "[%umFunctionParam.[%umlooppos]]" "[%umFunctionParam.[%umlooppos]]"
+         Setvar "[$[%umFunctionTemplate.[%umLooppos]]]" "[%umFunctionParam.[%umlooppos]]"
+    Endloop
+Else
+    Call "APRLL\Coder_Error_Cont" "Given parameters does not match up with the function's required parameters."
+    Setvar "[CurrentLooppos]" "[CurrentLoopposBUM]"
+Endif
+ClearVariables "[%umFunctionName],[%umFunctionPos],[%umLooppos]"
+Gotoline "End"
+.// Return Data[]
+:Command:Return
+StrDel "[CurrentLine]" "1" "[CurrentLine_Ins_Len]" "[CurrentLine]"
+PopulateStr "[CurrentLine]" "[CurrentLine]"
+If "[CurrentLoopposBUM]" "<>" "[Null]"
+    FileRead "[%1]" "[CurrentLoopposBUM]" "[%bumLine]"
+    SubStr "[CurrentLine]" "2" "[CurrentLine_Len]" "[CurrentLine]" 
+    StrReplace "[%bumLine]" "[%umFunctionString]" "[CurrentLine]" "[%bumLine]" ""
+    FileWrite "[%1]" "[CurrentLoopposBUM]" "[%bumLine]"
+    Setvar "[CurrentLooppos]" "[CurrentLoopposBUM]-1"
+    If "[%umFunctionTemplate.Num]" "<>" "0"
+    .DebugBreakPoint "[%umFunctionTemplate.Num]"
+    Loop "1" "[%umFunctionTemplate.Num]" "[%umlooppos]"
+         ClearVariables "[$[%umFunctionTemplate.[%umLooppos]]]"
+    Endloop
+    Endif
+    ClearVariables "[CurrentLoopposBUM],[%bumLine],[%umLooppos],[%umFunctionString],[%umFunctionParam.Num],[%umFunctionNameLen],[%umFunctionTemplate.Num],[%umlooppos],[[%umFunctionTemplate.1]],[[%umFunctionTemplate.2]],[[%umFunctionTemplate.3]],[[%umFunctionTemplate.4]],[[%umFunctionTemplate.5]],[[%umFunctionTemplate.6]],[[%umFunctionTemplate.7]],[[%umFunctionTemplate.8]],[[%umFunctionTemplate.9]],[[%umFunctionTemplate.10]]"
+    DeleteArray "[%umFunctionParam.]" "All"
+    DeleteArray "[%umFunctionTemplate.]" "All"
+    Gotoline "End"
+Else
+    Call "APRLL\Coder_Error_Cont" "There is no point in the memory to return to."
+EndIf
+
+Gotoline "End"
+:Command:EndFunction
+DebugBreakPoint "EndFunction"
+Setvar "[CurrentLooppos]" "[CurrentLoopposBUM]+1"
+If "[%umFunctionTemplate.Num]" "<>" "0"
+   .DebugBreakPoint "[%umFunctionTemplate.Num]"
+   Loop "1" "[%umFunctionTemplate.Num]" "[%umlooppos]"
+      ClearVariables "[$[%umFunctionTemplate.[%umLooppos]]]"
+   Endloop
+Endif
+ClearVariables "[CurrentLoopposBUM],[%bumLine],[%umLooppos],[%umFunctionString],[%umFunctionParam.Num],[%umFunctionNameLen],[%umFunctionTemplate.Num],[%umlooppos],[[%umFunctionTemplate.1]],[[%umFunctionTemplate.2]],[[%umFunctionTemplate.3]],[[%umFunctionTemplate.4]],[[%umFunctionTemplate.5]],[[%umFunctionTemplate.6]],[[%umFunctionTemplate.7]],[[%umFunctionTemplate.8]],[[%umFunctionTemplate.9]],[[%umFunctionTemplate.10]]"
+DeleteArray "[%umFunctionParam.]" "All"
+DeleteArray "[%umFunctionTemplate.]" "All"
+Gotoline "End"
+
+.// End of the main program's loop.
+:End
+Endloop
+If "[nbmode]" "<>" "X"
+  Call "APRLL\RemVars" "parameter_1,parameter_2,parameter_3,parameter_count,testparam,ScLen,CurrentLooppos,CurrentLine,CurrentLine_Len,Flag,Expression,Variable,Value,lw_looppos,If_argument,CurrentLine_Ins,currentline_ins_len,%PPFile,%PPFileUMF,%PPFileModif"
+Endif
+.// Removing the pre processed file.
+If "[%KeepPPFile]" "<>" "True"
+   Clearvariables "[%mainpos]"
+   FileErase "[TempDir]Runtime.temp"
+Endif

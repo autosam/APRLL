@@ -1,0 +1,13 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Source:
+Param=[%2]|Number|Line Number:
+Param=[%3]|Text|Output variable:
+{End}
+PopulateStr "[%1]" "[%1]"
+PopulateStr "[%2]" "[%2]"
+StrParse "[%1]" "[#13]" "[VarLine_]" "[Num]"
+Setvar "[[%3]]" "[VarLine_[%2]]"
+DeleteArray "[VarLine_]" "All"
+Call "APRLL\RemVars" "Looppos,Num"

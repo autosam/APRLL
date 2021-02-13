@@ -1,0 +1,25 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Comment=Disable a list of objects. Seperate them with ","
+Param=[%1]|Text|Object(s):
+{End}
+If "[WindowsVer]" "<>" "4.10"
+
+DefineVar "[DisableObjects.Var_]" "Undefined" "" "Local" ""
+DefineVar "[DisableObjects.Var_Count]" "Undefined" "" "Local" ""
+DefineVar "[DO_pos]" "Undefined" "" "Local" ""
+
+Setvar "[x]" "[%1]"
+Call "APRLL\RemoveSpaces(sys)" "[x]"
+Setvar "[%1]" "[x]"
+Setvar "[x]" ""
+
+StrParse "[%1]" "," "[DisableObjects.Var_]" "[DisableObjects.Var_Count]"
+
+Loop "1" "[DisableObjects.Var_Count]" "[DO_pos]"
+     DisableObject "[DisableObjects.Var_[DO_pos]]"
+Endloop
+DeleteArray "[DisableObjects.Var_]" "All"
+
+Endif

@@ -1,0 +1,7 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Source variable:
+Param=[%2]|Text|Output:
+{End}
+

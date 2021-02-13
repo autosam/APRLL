@@ -1,0 +1,19 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Text|Source:
+Param=[%2]|Text|Search for:
+Param=[%3]|Text|Output variable:
+{End}
+PopulateStr "[%1]" "[%1]"
+PopulateStr "[%2]" "[%2]"
+StrParse "[%1]" "[#13]" "[VarLine_]" "[Num]"
+Loop "1" "[Num]" "[Pos]"
+     SearchStr "[%2]" "[VarLine_[Pos]]" "[[%3]]" ""
+     If "[[%3]]" "<>" "0"
+        Setvar "[[%3]]" "[pos]"
+        ExitLoop
+     Endif
+Endloop
+DeleteArray "[VarLine_]" "All"
+ClearVariables "[Looppos],[pos],[Num]"

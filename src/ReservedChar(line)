@@ -1,0 +1,20 @@
+{NeoBook Function}
+Version=5.80
+Language=NeoBook
+Param=[%1]|Variable|Line:
+Param=[%2]|Variable|Output Variable:
+{End}
+SearchStr "[#91]%" "[%1]" "[%3]" ""
+While "[%3]" "<>" "0"
+      StrReplace "[%1]" "[#91]%" "[#91]" "[%2]" ""
+      SearchStr "[#91]%" "[%1]" "[%3]" ""
+Endwhile
+
+SearchStr "%[#93]" "[%1]" "[%3]" ""
+While "[%3]" "<>" "0"
+      StrReplace "[%1]" "%[#93]" "[#93]" "[%2]" ""
+      SearchStr "%[#93]" "[%1]" "[%3]" ""
+Endwhile
+
+
+ClearVariables "[%3]"

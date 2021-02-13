@@ -1,0 +1,5 @@
+IfEx "[currentline_ins]=Int OR [currentline_ins]=String OR [currentline_ins]=Bool OR [currentline_ins]=Var OR [currentline_ins]=Float OR [currentline_ins]=Char OR [currentline_ins]=Wchar OR [currentline_ins]=Uppercase OR [currentline_ins]=Lowercase OR [currentline_ins]=Debug OR [currentline_ins]=If OR [currentline_ins]=Random OR [currentline_ins]=mOut OR [currentline_ins]=Alertbox OR [currentline_ins]=Inputbox OR [currentline_ins]=Jump OR [currentline_ins]=DeclareType OR [currentline_ins]=Function OR [currentline_ins]=Return OR [currentline_ins]=[#125][%UMFCBNum] OR [currentline_ins]=mCls OR [currentline_ins]=Sleep"
+   Setvar "[Flag]" "1"
+Else
+   Setvar "[Flag]" "0"	
+Endif
